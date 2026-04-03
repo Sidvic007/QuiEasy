@@ -1,4 +1,4 @@
-QuiEasy
+# QuiEasy
 
 A full-stack real-time interactive quiz and polling platform built with React, Node.js, MongoDB, and Socket.io.
 
