@@ -1,0 +1,13 @@
+{
+  "name": "mentimeter-clone",
+  "version": "1.0.0",
+  "description": "Full-stack Mentimeter clone — run both services from root",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "seed": "cd backend && node config/seed.js",
+    "build:frontend": "cd frontend && npm run build"
+  },
+  "private": true
+}
