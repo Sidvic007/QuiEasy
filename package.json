@@ -4,6 +4,7 @@
   "description": "Full-stack Mentimeter clone — run both services from root",
   "scripts": {
     "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "start": "cd frontend && npm start",
     "dev:backend": "cd backend && npm run dev",
     "dev:frontend": "cd frontend && npm start",
     "seed": "cd backend && node config/seed.js",

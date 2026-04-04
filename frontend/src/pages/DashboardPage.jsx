@@ -14,6 +14,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     api.get('/quiz').then(({ data }) => setQuizzes(data)).finally(() => setLoading(false));
+    document.title = 'QuiEasy - Dashboard';
   }, []);
 
   const createQuiz = async () => {
@@ -46,14 +47,14 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-mesh">
       {/* Navbar */}
       <nav className="flex items-center justify-between px-8 py-4 border-b border-border/50 sticky top-0 bg-surface/80 backdrop-blur z-10">
-        <Link to="/" className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center">
             <span className="text-white font-bold text-sm">Q</span>
           </div>
           <span className="font-display font-bold text-xl text-white">QuiEasy</span>
-        </Link>
+        </div>
         <div className="flex items-center gap-4">
-          <span className="text-slate-400 text-sm">👋 {user?.name}</span>
+          <Link to="/" className="text-slate-400 hover:text-white transition-colors">Welcome, {user.name}</Link>
           <button onClick={logout} className="btn-ghost text-sm">Logout</button>
         </div>
       </nav>

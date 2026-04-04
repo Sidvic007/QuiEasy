@@ -33,6 +33,8 @@ export default function ParticipantPage() {
   useEffect(() => {
     if (!name || !joinCode) { navigate('/join'); return; }
 
+    document.title = 'QuiEasy - Participant';
+
     const socket = connectSocket();
     socketRef.current = socket;
 

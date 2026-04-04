@@ -18,6 +18,22 @@ const blankQuestion = (type = 'multiple_choice') => ({
   type, text: '', timeLimit: 30, points: 100, options: defaultOptions(type),
 });
 
+const isFormValid = (form) => {
+  if (!form || !form.text?.trim()) return false;
+  if (form.type === 'multiple_choice') {
+    const filledOptions = form.options.filter(opt => opt.text?.trim());
+    const hasCorrect = form.options.some(opt => opt.isCorrect);
+    return filledOptions.length >= 2 && hasCorrect;
+  }
+  if (form.type === 'true_false') {
+    return form.options.some(opt => opt.isCorrect);
+  }
+  if (form.type === 'word_cloud') {
+    return true;
+  }
+  return false;
+};
+
 export default function QuizEditorPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -27,12 +43,15 @@ export default function QuizEditorPage() {
   const [activeQ, setActiveQ] = useState(null); // index of question being edited
   const [form, setForm] = useState(null);        // working copy of question
   const [title, setTitle] = useState('');
+  const [showAddNextModal, setShowAddNextModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     api.get(`/quiz/${id}`).then(({ data }) => {
       setQuiz(data); setTitle(data.title);
       if (data.questions.length > 0) { setActiveQ(0); setForm(data.questions[0]); }
     }).finally(() => setLoading(false));
+    document.title = 'QuiEasy - Quiz Editor';
   }, [id]);
 
   const saveTitle = () => api.put(`/quiz/${id}`, { title });
@@ -46,12 +65,13 @@ export default function QuizEditorPage() {
   };
 
   const saveQuestion = async () => {
-    if (!form) return;
+    if (!isFormValid(form)) return;
     setSaving(true);
     try {
       const qId = quiz.questions[activeQ]._id;
       const { data } = await api.put(`/quiz/${id}/questions/${qId}`, form);
       setQuiz(data);
+      setShowAddNextModal(true);
     } finally { setSaving(false); }
   };
 
@@ -75,7 +95,15 @@ export default function QuizEditorPage() {
   };
 
   const addOption = () => setForm({ ...form, options: [...form.options, { text: '', isCorrect: false }] });
-  const removeOption = (i) => setForm({ ...form, options: form.options.filter((_, idx) => idx !== i) });
+
+  const startSession = async () => {
+    try {
+      const { data } = await api.post('/session', { quizId: quiz._id });
+      navigate(`/session/${data.session._id}/present`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to start session');
+    }
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-surface flex items-center justify-center">
@@ -93,7 +121,7 @@ export default function QuizEditorPage() {
             value={title} onChange={e => setTitle(e.target.value)} onBlur={saveTitle} />
         </div>
         <div className="flex gap-2">
-          <button onClick={saveQuestion} disabled={!form || saving} className="btn-primary text-sm">
+          <button onClick={saveQuestion} disabled={!form || saving || !isFormValid(form)} className="btn-primary text-sm">
             {saving ? 'Saving…' : '💾 Save Question'}
           </button>
         </div>
@@ -115,13 +143,14 @@ export default function QuizEditorPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">
             {quiz?.questions.map((q, i) => (
-              <button key={q._id} onClick={() => { setActiveQ(i); setForm(q); }}
-                className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-colors group relative ${activeQ === i ? 'bg-brand-500/20 text-white border border-brand-500/30' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}>
-                <span className="text-xs text-slate-500 block mb-0.5">Q{i + 1} · {TYPE_LABELS[q.type]?.label}</span>
-                <span className="truncate block">{q.text || 'Untitled question'}</span>
-                <button onClick={(e) => { e.stopPropagation(); deleteQuestion(i); }}
+              <div key={q._id} className={`relative group ${activeQ === i ? 'bg-brand-500/20 text-white border border-brand-500/30' : 'text-slate-400 hover:bg-white/5 hover:text-white'} w-full px-3 py-2.5 rounded-xl text-sm transition-colors`}>
+                <button onClick={() => { setActiveQ(i); setForm(q); }} className="w-full text-left">
+                  <span className="text-xs text-slate-500 block mb-0.5">Q{i + 1} · {TYPE_LABELS[q.type]?.label}</span>
+                  <span className="truncate block">{q.text || 'Untitled question'}</span>
+                </button>
+                <button onClick={() => deleteQuestion(i)}
                   className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-300 transition-opacity text-xs">✕</button>
-              </button>
+              </div>
             ))}
           </div>
         </aside>
@@ -199,13 +228,64 @@ export default function QuizEditorPage() {
                 )}
               </div>
 
-              <button onClick={saveQuestion} disabled={saving} className="btn-primary w-full py-3">
+              <button onClick={saveQuestion} disabled={saving || !isFormValid(form)} className="btn-primary w-full py-3">
                 {saving ? 'Saving…' : '💾 Save Question'}
               </button>
             </div>
           )}
         </main>
       </div>
+
+      {showAddNextModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-display font-semibold text-white mb-4">Add Next Question</h3>
+            <p className="text-slate-400 mb-6">Choose the type of question you'd like to add next:</p>
+            <div className="space-y-3">
+              {Object.entries(TYPE_LABELS).map(([type, { label, icon }]) => (
+                <button key={type} onClick={() => { addQuestion(type); setShowAddNextModal(false); }}
+                  className="w-full text-left px-4 py-3 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-white border border-brand-500/30 hover:border-brand-500/50 transition-colors flex items-center gap-3">
+                  <span className="text-lg">{icon}</span>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => { setShowAddNextModal(false); setShowSuccessModal(true); }} className="btn-ghost flex-1">Done Adding</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-surface border border-border rounded-xl p-6 max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <div className="text-4xl mb-2">✅</div>
+              <h3 className="text-lg font-display font-semibold text-white">Questions Added!</h3>
+              <p className="text-slate-400 text-sm mt-1">Your quiz is ready.</p>
+            </div>
+            <div className="space-y-3">
+              <button onClick={() => { setShowSuccessModal(false); setShowAddNextModal(true); }}
+                className="w-full text-left px-4 py-3 rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-white border border-brand-500/30 hover:border-brand-500/50 transition-colors flex items-center gap-3">
+                <span className="text-lg">➕</span>
+                <span>Add More Questions</span>
+              </button>
+              <button onClick={() => navigate('/dashboard')}
+                className="w-full text-left px-4 py-3 rounded-lg bg-slate-500/10 hover:bg-slate-500/20 text-white border border-slate-500/30 hover:border-slate-500/50 transition-colors flex items-center gap-3">
+                <span className="text-lg">🏠</span>
+                <span>Go to Dashboard</span>
+              </button>
+              <button onClick={startSession}
+                className="w-full text-left px-4 py-3 rounded-lg bg-green-500/10 hover:bg-green-500/20 text-white border border-green-500/30 hover:border-green-500/50 transition-colors flex items-center gap-3">
+                <span className="text-lg">▶️</span>
+                <span>Start the Quiz</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

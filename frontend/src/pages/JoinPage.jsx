@@ -31,6 +31,7 @@ export default function JoinPage() {
       };
       loadSession();
     }
+    document.title = 'QuiEasy - Join Session';
   }, [paramCode]);
 
   const lookupCode = async () => {

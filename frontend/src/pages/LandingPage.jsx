@@ -1,6 +1,14 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useEffect } from 'react';
 
 export default function LandingPage() {
+  const { user, logout } = useAuth();
+
+  useEffect(() => {
+    document.title = 'QuiEasy — Live Interactive Quizzes';
+  }, []);
+
   return (
     <div className="min-h-screen bg-mesh flex flex-col">
       {/* Nav */}
@@ -12,9 +20,19 @@ export default function LandingPage() {
           <span className="font-display font-bold text-xl text-white">QuiEasy</span>
         </div>
         <div className="flex items-center gap-3">
-          <Link to="/join" className="btn-ghost text-sm">Join Session</Link>
-          <Link to="/login" className="btn-ghost text-sm">Login</Link>
-          <Link to="/signup" className="btn-primary text-sm">Get Started</Link>
+          {user ? (
+            <>
+              <span className="text-slate-400">Welcome, {user.name}</span>
+              <Link to="/dashboard" className="btn-ghost text-sm">Dashboard</Link>
+              <button onClick={logout} className="btn-ghost text-sm">Logout</button>
+            </>
+          ) : (
+            <>
+              <Link to="/join" className="btn-ghost text-sm">Join Session</Link>
+              <Link to="/login" className="btn-ghost text-sm">Login</Link>
+              <Link to="/signup" className="btn-primary text-sm">Get Started</Link>
+            </>
+          )}
         </div>
       </nav>
 

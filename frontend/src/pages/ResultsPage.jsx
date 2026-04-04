@@ -11,6 +11,7 @@ export default function ResultsPage() {
 
   useEffect(() => {
     api.get(`/session/${sessionId}/results`).then(({ data }) => setData(data)).finally(() => setLoading(false));
+    document.title = 'QuiEasy - Results';
   }, [sessionId]);
 
   const exportCSV = () => {

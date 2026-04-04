@@ -46,6 +46,8 @@ export default function PresenterPage() {
       setStatus(data.status);
     });
 
+    document.title = 'QuiEasy - Presenter';
+
     const socket = connectSocket();
     socketRef.current = socket;
     socket.emit('host:join', { sessionId, token });
