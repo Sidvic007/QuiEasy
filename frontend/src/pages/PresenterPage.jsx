@@ -10,7 +10,7 @@ export default function PresenterPage() {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const socketRef = useRef(null);
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
 
   const [session, setSession] = useState(null);
   const [quiz, setQuiz] = useState(null);

@@ -4,21 +4,21 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        display: ['"Space Grotesk"', 'sans-serif'],
-        body: ['"DM Sans"', 'sans-serif'],
+        display: ['"Poppins"', 'sans-serif'],
+        body: ['"Poppins"', 'sans-serif'],
       },
       colors: {
         brand: {
-          50: '#f0f0ff',
-          100: '#e0e1ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          900: '#1e1b4b',
+          50: '#ecfeff',
+          100: '#cffafe',
+          500: '#7dd3fc',
+          600: '#38bdf8',
+          700: '#0ea5e9',
+          900: '#134e5e',
         },
-        surface: '#0f0f1a',
-        card: '#1a1a2e',
-        border: '#2a2a45',
+        surface: '#101f2a',
+        card: '#16313d',
+        border: '#2f4f62',
       },
       animation: {
         'fade-in': 'fadeIn 0.4s ease forwards',

@@ -1,15 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --brand: #6366f1;
-  --brand-dark: #4f46e5;
-  --surface: #0f0f1a;
-  --card: #1a1a2e;
-  --border: #2a2a45;
-  --text: #e2e8f0;
+  --brand: #7dd3fc;
+  --brand-dark: #38bdf8;
+  --surface: #101f2a;
+  --card: #16313d;
+  --border: #2f4f62;
+  --text: #e7f3f8;
   --muted: #94a3b8;
 }
 
@@ -19,12 +19,12 @@ body {
   margin: 0;
   background: var(--surface);
   color: var(--text);
-  font-family: 'DM Sans', sans-serif;
+  font-family: 'Poppins', sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5 {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 /* Scrollbar */
@@ -42,7 +42,7 @@ h1, h2, h3, h4, h5 {
 
 /* Gradient text */
 .gradient-text {
-  background: linear-gradient(135deg, #a78bfa 0%, #6366f1 50%, #38bdf8 100%);
+  background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 50%, #a5f3fc 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -51,10 +51,10 @@ h1, h2, h3, h4, h5 {
 /* Animated gradient background */
 .bg-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(56,189,248,0.1) 0%, transparent 60%),
-    radial-gradient(ellipse at 60% 80%, rgba(167,139,250,0.1) 0%, transparent 60%),
-    #0f0f1a;
+    radial-gradient(ellipse at 20% 40%, rgba(125,211,252,0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 82% 18%, rgba(56,189,248,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 55% 80%, rgba(167,139,250,0.08) 0%, transparent 55%),
+    #101f2a;
 }
 
 /* Button base */
@@ -62,7 +62,7 @@ h1, h2, h3, h4, h5 {
   @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-200 cursor-pointer border-0 text-sm;
 }
 .btn-primary {
-  @apply btn bg-brand-500 hover:bg-brand-600 text-white shadow-lg shadow-brand-500/25 hover:shadow-brand-600/30 hover:-translate-y-0.5;
+  @apply btn bg-brand-500 hover:bg-brand-600 text-slate-950 shadow-lg shadow-cyan-300/20 hover:shadow-cyan-400/25 hover:-translate-y-0.5;
 }
 .btn-ghost {
   @apply btn bg-transparent hover:bg-white/5 text-slate-300 hover:text-white border border-border;
