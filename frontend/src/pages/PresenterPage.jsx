@@ -106,6 +106,7 @@ export default function PresenterPage() {
     socket.on('session:ended', () => {
       clearInterval(timerRef.current);
       setStatus('ended');
+      navigate(`/session/${sessionId}/results`);
     });
 
     return () => { clearInterval(timerRef.current); disconnectSocket(); };
@@ -126,12 +127,16 @@ export default function PresenterPage() {
   const startQuiz = () => socketRef.current?.emit('host:start', { sessionId });
   const nextQuestion = () => socketRef.current?.emit('host:next', { sessionId });
   const revealResults = () => socketRef.current?.emit('host:reveal', { sessionId });
-  const endSession = () => { socketRef.current?.emit('host:end', { sessionId }); navigate(`/session/${sessionId}/results`); };
+  const endSession = () => { socketRef.current?.emit('host:end', { sessionId }); };
 
   const joinUrl = `${window.location.origin}/join/${session?.joinCode}`;
   const correctOption = currentQ?.type !== 'word_cloud'
     ? quiz?.questions[questionIndex]?.options?.find(o => o.isCorrect)?.text
     : null;
+
+  const chartData = revealed
+    ? leaderboard.map((p) => ({ label: p.name, value: p.score }))
+    : Object.entries(aggregated).map(([label, value]) => ({ label, value }));
 
   if (status === 'loading') return (
     <div className="min-h-screen bg-surface flex items-center justify-center">
@@ -248,7 +253,9 @@ export default function PresenterPage() {
               {/* Live chart */}
               <div className="card">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-display font-semibold text-white">Live Results</h3>
+                  <h3 className="font-display font-semibold text-white">
+                    {revealed ? 'Scores' : 'Live Results'}
+                  </h3>
                   {revealed && correctOption && (
                     <span className="badge bg-green-500/20 text-green-400 border border-green-500/20">
                       ✅ Correct: {correctOption}
@@ -258,9 +265,9 @@ export default function PresenterPage() {
                 {currentQ.type === 'word_cloud' ? (
                   <WordCloud words={aggregated} />
                 ) : (
-                  <LiveBarChart aggregated={aggregated} correctOption={revealed ? correctOption : null} />
+                  <LiveBarChart data={chartData} isScoreChart={revealed} correctOption={!revealed ? correctOption : null} />
                 )}
-                {Object.keys(aggregated).length === 0 && (
+                {chartData.length === 0 && (
                   <p className="text-slate-500 text-center py-8 text-sm">Waiting for responses…</p>
                 )}
               </div>

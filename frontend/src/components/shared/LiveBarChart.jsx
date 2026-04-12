@@ -11,20 +11,26 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const COLORS = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'];
 
-export default function LiveBarChart({ aggregated = {}, correctOption }) {
-  const labels = Object.keys(aggregated);
-  const values = Object.values(aggregated);
+export default function LiveBarChart({ data = [], correctOption, isScoreChart = false }) {
+  const labels = Array.isArray(data) ? data.map((item) => item.label) : Object.keys(data);
+  const values = Array.isArray(data) ? data.map((item) => item.value) : Object.values(data);
 
-  const data = {
+  const backgroundColor = labels.map((label, i) => {
+    if (isScoreChart) return COLORS[i % COLORS.length] + 'cc';
+    return label === correctOption ? '#10b981cc' : COLORS[i % COLORS.length] + 'cc';
+  });
+
+  const borderColor = labels.map((label, i) => {
+    if (isScoreChart) return COLORS[i % COLORS.length];
+    return label === correctOption ? '#10b981' : COLORS[i % COLORS.length];
+  });
+
+  const chartData = {
     labels,
     datasets: [{
       data: values,
-      backgroundColor: labels.map((label, i) =>
-        label === correctOption ? '#10b981cc' : COLORS[i % COLORS.length] + 'cc'
-      ),
-      borderColor: labels.map((label, i) =>
-        label === correctOption ? '#10b981' : COLORS[i % COLORS.length]
-      ),
+      backgroundColor,
+      borderColor,
       borderWidth: 2,
       borderRadius: 8,
     }],
@@ -47,5 +53,5 @@ export default function LiveBarChart({ aggregated = {}, correctOption }) {
     },
   };
 
-  return <Bar data={data} options={options} />;
+  return <Bar data={chartData} options={options} />;
 }

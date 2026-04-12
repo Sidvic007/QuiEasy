@@ -60,6 +60,8 @@ const registerSocketHandlers = (io) => {
         socket.data.role = 'host';
         socket.data.sessionId = sessionId;
         socket.data.joinCode = session.joinCode;
+        if (!roomMeta[session.joinCode]) roomMeta[session.joinCode] = {};
+        roomMeta[session.joinCode].hostSocketId = socket.id;
         socket.emit('session:updated', { session });
         console.log(`👑 Host joined room ${session.joinCode}`);
       } catch (err) {
@@ -196,13 +198,21 @@ const registerSocketHandlers = (io) => {
           session.endedAt = new Date();
           await session.save();
 
-          // Find the winner (participant with highest score)
-          let winner = null;
-          if (session.participants.length > 0) {
-            winner = session.participants.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-          }
+          const leaderboard = await buildLeaderboard(session);
+          const winner = leaderboard.length > 0 ? leaderboard[0] : null;
+          const scoreMap = Object.fromEntries(leaderboard.map((item) => [item.name.trim(), item.score]));
 
-          io.to(session.joinCode).emit('session:ended', { sessionId, winner });
+          session.participants.forEach((participant) => {
+            if (participant.socketId) {
+              io.to(participant.socketId).emit('session:ended', {
+                sessionId,
+                winner,
+                leaderboard,
+                yourScore: scoreMap[participant.name.trim()] || 0,
+              });
+            }
+          });
+          socket.emit('session:ended', { sessionId, winner, leaderboard });
           return;
         }
 
@@ -238,10 +248,10 @@ const registerSocketHandlers = (io) => {
         await session.save();
 
         const aggregated = await aggregateCurrentQuestion(session);
-        io.to(session.joinCode).emit('results:revealed', {
+        socket.emit('results:revealed', {
           questionIndex: session.currentQuestionIndex,
           aggregated,
-          leaderboard: buildLeaderboard(session),
+          leaderboard: await buildLeaderboard(session),
         });
       } catch (err) {
         socket.emit('error', { message: err.message });
@@ -251,20 +261,28 @@ const registerSocketHandlers = (io) => {
     // ─── HOST ENDS SESSION ───────────────────────────────────────────────
     socket.on('host:end', async ({ sessionId }) => {
       try {
-        const session = await Session.findById(sessionId);
+        const session = await Session.findById(sessionId).populate('quiz');
         if (!session) return;
         clearTimer(session.joinCode);
         session.status = 'ended';
         session.endedAt = new Date();
         await session.save();
 
-        // Find the winner (participant with highest score)
-        let winner = null;
-        if (session.participants.length > 0) {
-          winner = session.participants.reduce((prev, current) => (prev.score > current.score) ? prev : current);
-        }
+        const leaderboard = await buildLeaderboard(session);
+        const winner = leaderboard.length > 0 ? leaderboard[0] : null;
+        const scoreMap = Object.fromEntries(leaderboard.map((item) => [item.name.trim(), item.score]));
 
-        io.to(session.joinCode).emit('session:ended', { sessionId, winner });
+        session.participants.forEach((participant) => {
+          if (participant.socketId) {
+            io.to(participant.socketId).emit('session:ended', {
+              sessionId,
+              winner,
+              leaderboard,
+              yourScore: scoreMap[participant.name.trim()] || 0,
+            });
+          }
+        });
+        socket.emit('session:ended', { sessionId, winner, leaderboard });
       } catch (err) {
         socket.emit('error', { message: err.message });
       }
@@ -385,29 +403,100 @@ async function aggregateCurrentQuestion(session) {
   return counts;
 }
 
-function buildLeaderboard(session) {
+async function buildLeaderboard(session) {
+  const responseTotals = {};
+  const responses = await Response.find({ session: session._id });
+
+  responses.forEach((r) => {
+    const name = String(r.participantName || '').trim();
+    responseTotals[name] = (responseTotals[name] || 0) + (r.pointsEarned || 0);
+  });
+
   const unique = dedupeParticipants(session.participants || []);
-  return unique
-    .map((p) => ({ name: p.name, score: p.score }))
+  const leaderboard = unique
+    .map((p) => ({ name: p.name, score: responseTotals[p.name.trim()] || 0 }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
+
+  return leaderboard;
 }
 
 // Auto-advance when timer expires
-const timers = {};
+const questionTimers = {};
+
+async function handleQuestionTimeout(io, code, expectedIndex) {
+  const session = await Session.findOne({ joinCode: code }).populate('quiz');
+  if (!session || session.status !== 'active' || session.currentQuestionIndex !== expectedIndex) return;
+
+  io.to(code).emit('question:timeup', { questionIndex: expectedIndex });
+
+  const nextIndex = session.currentQuestionIndex + 1;
+  if (nextIndex >= session.quiz.questions.length) {
+    session.status = 'ended';
+    session.endedAt = new Date();
+    await session.save();
+
+    const leaderboard = await buildLeaderboard(session);
+    const winner = leaderboard.length > 0 ? leaderboard[0] : null;
+    const scoreMap = Object.fromEntries(leaderboard.map((item) => [item.name.trim(), item.score]));
+
+    session.participants.forEach((participant) => {
+      if (participant.socketId) {
+        io.to(participant.socketId).emit('session:ended', {
+          sessionId: session._id,
+          winner,
+          leaderboard,
+          yourScore: scoreMap[participant.name.trim()] || 0,
+        });
+      }
+    });
+    // Emit to host as well (timeout path does not have direct socket reference)
+    const hostSocketId = roomMeta[code]?.hostSocketId;
+    if (hostSocketId) {
+      io.to(hostSocketId).emit('session:ended', { sessionId: session._id, winner, leaderboard });
+    } else {
+      io.to(code).emit('session:ended', { sessionId: session._id, winner, leaderboard });
+    }
+    return;
+  }
+
+  session.currentQuestionIndex = nextIndex;
+  session.resultsRevealed = false;
+  await session.save();
+
+  const q = session.quiz.questions[nextIndex];
+  const startedAt = Date.now();
+  if (!roomMeta[code]) roomMeta[code] = {};
+  roomMeta[code].questionStartedAt = startedAt;
+
+  io.to(code).emit('question:started', {
+    question: sanitizeQuestion(q),
+    questionIndex: nextIndex,
+    totalQuestions: session.quiz.questions.length,
+    timeLimit: q.timeLimit,
+    startedAt,
+  });
+
+  startTimer(io, session, nextIndex, q.timeLimit);
+}
+
 function startTimer(io, session, questionIndex, timeLimit) {
   if (!timeLimit || timeLimit <= 0) return;
   const code = session.joinCode;
-  if (timers[code]) clearTimeout(timers[code]);
-  timers[code] = setTimeout(async () => {
-    io.to(code).emit('question:timeup', { questionIndex });
+  if (questionTimers[code]) clearTimeout(questionTimers[code]);
+  questionTimers[code] = setTimeout(async () => {
+    await handleQuestionTimeout(io, code, questionIndex);
   }, timeLimit * 1000);
 }
 
 function clearTimer(joinCode) {
-  if (timers[joinCode]) {
-    clearTimeout(timers[joinCode]);
-    delete timers[joinCode];
+  if (questionTimers[joinCode]) {
+    clearTimeout(questionTimers[joinCode]);
+    delete questionTimers[joinCode];
+  }
+  if (advanceTimers[joinCode]) {
+    clearTimeout(advanceTimers[joinCode]);
+    delete advanceTimers[joinCode];
   }
 }
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { connectSocket, disconnectSocket } from '../utils/socket';
+import LiveBarChart from '../components/shared/LiveBarChart';
 
 const OPTION_COLORS = ['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444'];
 
@@ -25,6 +26,7 @@ export default function ParticipantPage() {
   const [questionStartedAt, setQuestionStartedAt] = useState(null);
   const [error, setError] = useState('');
   const [winner, setWinner] = useState(null);
+  const [finalLeaderboard, setFinalLeaderboard] = useState([]);
   const timerRef = useRef(null);
 
   const name = state?.name;
@@ -86,9 +88,11 @@ export default function ParticipantPage() {
       setTotalScore(prev => prev + pts);
     });
 
-    socket.on('session:ended', ({ winner }) => {
+    socket.on('session:ended', ({ winner, leaderboard, yourScore }) => {
       clearInterval(timerRef.current);
+      if (typeof yourScore === 'number') setTotalScore(yourScore);
       setWinner(winner);
+      setFinalLeaderboard(Array.isArray(leaderboard) ? leaderboard : []);
       setStatus('ended');
     });
 
@@ -154,17 +158,22 @@ export default function ParticipantPage() {
         <div className="text-6xl mb-4">🏁</div>
         <h2 className="text-2xl font-display font-bold text-white mb-2">Quiz Over!</h2>
         <p className="text-slate-400 mb-6">Thanks for playing, <strong className="text-white">{name}</strong>!</p>
-        <div className="card inline-block px-8 py-4 mb-8">
+        <div className="card inline-block px-8 py-4 mb-6">
           <p className="text-slate-400 text-sm">Your total score</p>
           <p className="text-4xl font-display font-bold gradient-text">{totalScore} pts</p>
         </div>
         {winner && (
-          <div className="card inline-block px-8 py-4 mb-8">
+          <div className="card inline-block px-8 py-4 mb-6">
             <p className="text-slate-400 text-sm">The winner is</p>
             <p className="text-2xl font-display font-bold text-yellow-400">{winner.name} with {winner.score} points!</p>
           </div>
         )}
-        <br />
+        {finalLeaderboard.length > 0 && (
+          <div className="max-w-xl mx-auto text-left mb-6">
+            <p className="text-slate-400 text-sm mb-3">Final leaderboard</p>
+            <LiveBarChart data={finalLeaderboard.map(p => ({ label: p.name, value: p.score }))} isScoreChart />
+          </div>
+        )}
         <button onClick={() => navigate('/join')} className="btn-primary">Join Another Session</button>
       </div>
     </Screen>
