@@ -45,6 +45,11 @@ export default function QuizEditorPage() {
   const [title, setTitle] = useState('');
   const [showAddNextModal, setShowAddNextModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiContext, setAiContext] = useState('');
+  const [aiCount, setAiCount] = useState(5);
+  const [aiMode, setAiMode] = useState('append');
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   useEffect(() => {
     api.get(`/quiz/${id}`).then(({ data }) => {
@@ -96,6 +101,43 @@ export default function QuizEditorPage() {
 
   const addOption = () => setForm({ ...form, options: [...form.options, { text: '', isCorrect: false }] });
 
+  const generateWithAI = async () => {
+    const prompt = aiPrompt.trim();
+    if (!prompt) {
+      alert('Please add a prompt for AI generation.');
+      return;
+    }
+
+    setGeneratingAI(true);
+    const previousCount = quiz?.questions?.length || 0;
+
+    try {
+      const { data } = await api.post(`/quiz/${id}/ai-generate`, {
+        prompt,
+        context: aiContext,
+        questionCount: aiCount,
+        mode: aiMode,
+      });
+
+      const updatedQuiz = data.quiz;
+      setQuiz(updatedQuiz);
+
+      if (updatedQuiz.questions.length > 0) {
+        const nextIndex = aiMode === 'replace'
+          ? 0
+          : Math.min(previousCount, updatedQuiz.questions.length - 1);
+        setActiveQ(nextIndex);
+        setForm(updatedQuiz.questions[nextIndex]);
+      }
+
+      alert(`Generated ${data.generatedCount} question(s) using ${data.provider}.`);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to generate questions with AI');
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
+
   const startSession = async () => {
     try {
       const { data } = await api.post('/session', { quizId: quiz._id });
@@ -139,6 +181,49 @@ export default function QuizEditorPage() {
                   <span>{icon}</span>{label}
                 </button>
               ))}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-border/70 space-y-2.5">
+              <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">AI Generator</p>
+              <textarea
+                className="input text-xs resize-none"
+                rows={3}
+                placeholder="Prompt: Build a beginner Python basics quiz"
+                value={aiPrompt}
+                onChange={e => setAiPrompt(e.target.value)}
+              />
+              <textarea
+                className="input text-xs resize-none"
+                rows={3}
+                placeholder="Context: Grade 10 students, mix concept and practical questions"
+                value={aiContext}
+                onChange={e => setAiContext(e.target.value)}
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="input text-xs"
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={aiCount}
+                  onChange={e => setAiCount(Math.max(1, Math.min(10, Number(e.target.value) || 1)))}
+                />
+                <select
+                  className="input text-xs"
+                  value={aiMode}
+                  onChange={e => setAiMode(e.target.value)}
+                >
+                  <option value="append">Append</option>
+                  <option value="replace">Replace</option>
+                </select>
+              </div>
+              <button
+                onClick={generateWithAI}
+                disabled={generatingAI}
+                className="btn-primary w-full text-xs py-2"
+              >
+                {generatingAI ? 'Generating…' : 'Generate with AI'}
+              </button>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-1">

@@ -97,6 +97,7 @@ A full-stack real-time interactive quiz and polling platform built with React, N
 | POST | `/api/quiz/:id/questions` | ✅ | Add question |
 | PUT | `/api/quiz/:id/questions/:qid` | ✅ | Update question |
 | DELETE | `/api/quiz/:id/questions/:qid` | ✅ | Delete question |
+| POST | `/api/quiz/:id/ai-generate` | ✅ | Generate questions from prompt/context with AI |
 
 ### Sessions
 | Method | Path | Auth | Description |
@@ -172,6 +173,13 @@ PORT=5000
 MONGO_URI=mongodb://localhost:27017/mentimeter_clone
 JWT_SECRET=your_super_secret_key_here
 CLIENT_URL=http://localhost:3000
+
+# Configure one provider for AI generation
+OPENROUTER_API_KEY=
+OPENROUTER_MODEL=google/gemma-4-31b-it:free
+
+HUGGINGFACE_API_KEY=
+HUGGINGFACE_MODEL=mistralai/Mistral-7B-Instruct-v0.2
 ```
 
 **frontend/.env** (already set)
@@ -219,6 +227,7 @@ Open **http://localhost:3000**
 9. Click **Next →** to advance, or **End Session** to finish
 10. View full results with charts at `/session/:id/results`
 11. Export results as CSV
+12. In quiz editor, use **AI Generator** with prompt/context to append or replace questions automatically
 
 ### As a Participant
 1. Go to `/join` (or scan QR code)
