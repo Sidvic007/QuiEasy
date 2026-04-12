@@ -1,9 +1,9 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const HUGGINGFACE_BASE_URL = 'https://api-inference.huggingface.co/models';
 
-const DEFAULT_OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
+const DEFAULT_OPENROUTER_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
 const OPENROUTER_FALLBACK_MODELS = [
-  'qwen/qwen3-next-80b-a3b-instruct:free',
+  'nvidia/nemotron-3-super-120b-a12b:free',
 ];
 const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
 
