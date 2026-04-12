@@ -3,7 +3,7 @@ const HUGGINGFACE_BASE_URL = 'https://api-inference.huggingface.co/models';
 
 const DEFAULT_OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
 const OPENROUTER_FALLBACK_MODELS = [
-  'google/gemma-4-26b-a4b-it:free',
+  'qwen/qwen3-next-80b-a3b-instruct:free',
 ];
 const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
 
