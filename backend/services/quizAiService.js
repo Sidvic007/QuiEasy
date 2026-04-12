@@ -77,7 +77,10 @@ async function callOpenRouter({ prompt, context, questionCount, title }) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      const shouldFallback = response.status === 404 && errorText.includes('No endpoints found');
+      const shouldFallback =
+        (response.status === 404 && errorText.includes('No endpoints found'))
+        || response.status === 429
+        || response.status === 503;
       if (shouldFallback) {
         lastError = new Error(`OpenRouter model unavailable: ${model}`);
         continue;
@@ -141,7 +144,14 @@ async function callHuggingFace({ prompt, context, questionCount, title }) {
 
 async function generateQuizDraft(params) {
   if (process.env.OPENROUTER_API_KEY) {
-    return callOpenRouter(params);
+    try {
+      return await callOpenRouter(params);
+    } catch (openRouterError) {
+      if (process.env.HUGGINGFACE_API_KEY) {
+        return callHuggingFace(params);
+      }
+      throw openRouterError;
+    }
   }
 
   if (process.env.HUGGINGFACE_API_KEY) {
