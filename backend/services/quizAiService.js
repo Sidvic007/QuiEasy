@@ -1,11 +1,10 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const HUGGINGFACE_BASE_URL = 'https://api-inference.huggingface.co/models';
 
-const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-31b-it:free';
+const DEFAULT_OPENROUTER_MODEL = 'google/gemma-4-26b-a4b-it:free';
 const OPENROUTER_FALLBACK_MODELS = [
   'google/gemma-4-31b-it:free',
   'google/gemma-4-26b-a4b-it:free',
-  'meta-llama/llama-3.1-8b-instruct:free',
 ];
 const DEFAULT_HUGGINGFACE_MODEL = 'mistralai/Mistral-7B-Instruct-v0.2';
 
